@@ -8,12 +8,19 @@ const groupRoutes = require("./routes/groupRoutes");
 
 dotenv.config();
 
-connectDB();
-
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("MongoDB connection failed:", error.message);
+    res.status(503).json({ message: "Database unavailable" });
+  }
+});
 app.use("/api/users", userRoutes);
 app.use("/api/groups", groupRoutes);
 
