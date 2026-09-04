@@ -34,7 +34,7 @@ const registerUser = async (req, res) => {
 			group: null
 		});
 
-		const matchingGroup = await Group.findOne({
+		let matchingGroup = await Group.findOne({
 			country: { $regex: `^${normalizedCountry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
 			$expr: { $lt: [{ $size: "$members" }, "$maxMembers"] }
 		}).sort({ groupNumber: 1 });
@@ -43,12 +43,23 @@ const registerUser = async (req, res) => {
 			matchingGroup.members.push(user._id);
 			user.group = matchingGroup._id;
 			await Promise.all([matchingGroup.save(), user.save()]);
+		} else {
+			const lastCountryGroup = await Group.findOne({
+				country: { $regex: `^${normalizedCountry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" }
+			}).sort({ groupNumber: -1 });
+			const newGroup = await Group.create({
+				country: normalizedCountry,
+				groupNumber: lastCountryGroup ? lastCountryGroup.groupNumber + 1 : 1,
+				name: `${normalizedCountry} Community`,
+				members: [user._id]
+			});
+			user.group = newGroup._id;
+			await user.save();
+			matchingGroup = newGroup;
 		}
 
 		return res.status(201).json({
-			message: matchingGroup
-				? `Registration complete. You were added to ${matchingGroup.name}.`
-				: "Registration complete. No available group was found for your country yet.",
+			message: `Registration complete. You were added to ${matchingGroup.name}.`,
 			user: {
 				id: user._id,
 				name: user.name,
