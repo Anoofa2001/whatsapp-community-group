@@ -13,12 +13,23 @@ const getGroups = async (req, res) => {
 const createGroup = async (req, res) => {
 	try {
 		const { country, groupNumber, name, whatsappInviteLink, maxMembers } = req.body;
+		const parsedGroupNumber = Number(groupNumber);
+		const parsedMaxMembers = maxMembers === undefined ? 20 : Number(maxMembers);
 
-		if (!country || groupNumber === undefined || !name) {
+		if (!country?.trim() || !name?.trim() || !Number.isInteger(parsedGroupNumber) || parsedGroupNumber < 1 || !Number.isInteger(parsedMaxMembers) || parsedMaxMembers < 2) {
 			return res.status(400).json({ message: "Country, group number, and name are required" });
 		}
 
-		const group = await Group.create({ country, groupNumber, name, whatsappInviteLink, maxMembers });
+		const group = await Group.create({
+			country: country.trim(),
+			groupNumber: parsedGroupNumber,
+			name: name.trim(),
+			whatsappInviteLink: whatsappInviteLink?.trim() || "",
+			maxMembers: parsedMaxMembers,
+			members: [req.user._id]
+		});
+		req.user.group = group._id;
+		await req.user.save();
 		return res.status(201).json(group);
 	} catch (error) {
 		return res.status(500).json({ message: "Server error" });

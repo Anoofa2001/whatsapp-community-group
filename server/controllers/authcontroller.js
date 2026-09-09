@@ -5,6 +5,7 @@ const User = require("../models/User");
 const Group = require("../models/Group");
 
 const createToken = (userId) => jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+const createAdminToken = () => jwt.sign({ role: "admin" }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
 const registerUser = async (req, res) => {
 	try {
@@ -117,4 +118,30 @@ const loginUser = async (req, res) => {
 	}
 };
 
-module.exports = { registerUser, loginUser };
+const loginAdmin = async (req, res) => {
+
+	try {
+		const { email, password } = req.body;
+		const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+
+		if (!email || !password || !adminEmail || email.toLowerCase().trim() !== adminEmail || password !== process.env.ADMIN_PASSWORD) {
+			return res.status(401).json({ message: "Invalid admin email or password" });
+		}
+
+		return res.json({
+			token: createAdminToken(),
+			user: {
+				id: "admin",
+				name: "Administrator",
+				email: adminEmail,
+				country: "Administration",
+				whatsappNumber: "",
+				role: "admin"
+			}
+		});
+	} catch (error) {
+		return res.status(500).json({ message: "Server error" });
+	}
+};
+
+module.exports = { registerUser, loginUser, loginAdmin };

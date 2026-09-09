@@ -15,6 +15,9 @@ app.use(express.json());
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).end();
+});
 app.use(async (req, res, next) => {
   try {
     await connectDB();
